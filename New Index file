@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sai Teja Task</title>
+
+    <script src="https://rawgit.com/RubaXa/Sortable/master/Sortable.js"></script>
+
+    
+</head>
+<body>
+    <section>
+        <div class="container">
+            <input type="text" placeholder="Title" id="title">
+            <input type="date" id="myDate" max="2222-05-26">
+            <input type="text" placeholder="Description" id="des">
+            <button id="btn1" onclick="handlesaveanddelete()">SAVE</button>
+        </div>
+
+        <div class="week">
+            <div id="days" class="btns">
+                <button class="btn" style="color: aliceblue; background-color: #000;">Sun</button>
+                <button class="btn" style="color: aliceblue; background-color: #000;">Mon</button>
+                <button class="btn"style="color: aliceblue; background-color: #000;">Tue</button>
+                <button class="btn"style="color: aliceblue; background-color: #000;">Wed</button>
+                <button class="btn"style="color: aliceblue; background-color: #000;">Thu</button>
+                <button class="btn"style="color: aliceblue; background-color: #000;">Fri</button>
+                <button class="btn"style="color: aliceblue; background-color: #000;">Sat</button>
+            </div>
+        </div>
+
+        <div class="container2" id="droppable-area">
+        </div>
+    </section>
+
+    <div id="myModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="handleCloseModal()">&times;</span>
+            <label for="editTitle">Title:</label>
+            <input type="text" id="editTitle">
+            <label for="editDes">Description:</label>
+            <textarea id="editDes"></textarea> &nbsp;&nbsp;
+            <label for="editDate">Date:</label>
+            <input type="date" id="editDate" max="2222-05-26">
+            <button onclick="handleEditSave()"  id="button">Save</button>
+        </div>
+    </div>
+
+
+    <script>
+    const titleInput = document.getElementById("title");
+        const descriptionInput = document.getElementById("des");
+        const dateInput = document.getElementById("myDate");
+        const droppableArea = document.getElementById("droppable-area");
+        const dayButtons = document.querySelectorAll('.btn');
+
+        const sortable = new Sortable(droppableArea, {
+            animation: 150,
+            ghostClass: 'drag-ghost',
+        });
+
+        const dateEle = document.getElementById('myDate');
+
+        dateEle.addEventListener('change', () => {
+            const selectedDate = new Date(dateEle.value);
+            const selectedDay = selectedDate.getDay();
+           
+            dayButtons.forEach(button => button.style.backgroundColor = 'black');
+            dayButtons[selectedDay].style.backgroundColor = 'grey'; 
+            displayTasksForDay(selectedDay);
+        });
+
+        dayButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const dayIndex = Array.from(dayButtons).indexOf(button);
+                const selectedDate = new Date(dateEle.value);
+                const selectedDay = (selectedDate.getDay() + dayIndex) % 7;
+
+                dayButtons.forEach(btn => btn.style.backgroundColor = (btn === button) ? 'grey' : '');
+
+                displayTasksForDay(selectedDay);
+            });
+        });
+
+        function handlesaveanddelete() {
+            const title = titleInput.value;
+            const description = descriptionInput.value;
+            const date = dateInput.value;
+
+            const today = new Date();
+            const enteredDate = new Date(date);
+            const isToday = enteredDate.getDate() === today.getDate() &&
+                            enteredDate.getMonth() === today.getMonth() &&
+                            enteredDate.getFullYear() === today.getFullYear();
+
+            if (!title || !date) {
+                alert("Please enter Title, Description, and Date before saving.");
+                return;
+            }
+
+            const content = `
+                <div class="data-item" data-day="${enteredDate.getDay()}">
+                    <b>Title:</b> ${title}<br>
+                    <b>Description:</b> ${description}<br>
+                    <b>Date:</b> ${date}
+                    <button class="delete-button" onclick="handleDelete(this)">Delete</button>
+                    <button class="edit-button" onclick="handleEdit(this)">Edit</button>
+                </div>
+            `;
+
+            droppableArea.insertAdjacentHTML('beforeend', content);
+
+            titleInput.value = "";
+            descriptionInput.value = "";
+            dateInput.value = "";
+
+            if (isToday) {
+                displayTasksForDay(today.getDay());
+            }
+        }
+
+        function handleDelete(button) {
+            button.parentNode.remove();
+            const selectedDate = new Date(dateEle.value);
+            const selectedDay = selectedDate.getDay();
+            displayTasksForDay(selectedDay);
+        }
+
+        let selectedEditItem;
+
+        function handleEdit(button) {
+            const selectedItem = button.parentNode;
+            const title = selectedItem.querySelector("b:nth-of-type(1)").innerText;
+            const description = selectedItem.querySelector("b:nth-of-type(2)").innerText;
+            const date = selectedItem.querySelector("b:nth-of-type(3)").innerText;
+
+            document.getElementById("editTitle").value = title.replace("Title:", "").trim();
+            document.getElementById("editDes").value = description.replace("Description:", "").trim();
+            document.getElementById("editDate").value = date.replace("Date:", "").trim();
+
+            selectedEditItem = selectedItem;
+            openModal();
+        }
+
+        function handleEditSave() {
+            const editedTitle = document.getElementById("editTitle").value;
+            const editedDescription = document.getElementById("editDes").value;
+            const editedDate = document.getElementById("editDate").value;
+
+            selectedEditItem.remove();
+
+            const updatedcontent = `
+                <div class="data-item" data-day="${new Date(editedDate).getDay()}">
+                    <b>Title:</b> ${editedTitle}<br>
+                    <b>Description:</b> ${editedDescription}<br>
+                    <b>Date:</b> ${editedDate}
+                    <button class="delete-button" onclick="handleDelete(this)">Delete</button>
+                    <button class="edit-button" onclick="handleEdit(this)">Edit</button>
+                </div>
+            `;
+
+            droppableArea.insertAdjacentHTML('beforeend', updatedcontent);
+
+            titleInput.value = editedTitle;
+            descriptionInput.value = editedDescription;
+            dateInput.value = editedDate;
+
+            handleCloseModal();
+
+            titleInput.value = "";
+            descriptionInput.value = "";
+            dateInput.value = "";
+
+            displayTasksForDay(new Date(editedDate).getDay());
+        }
+
+        function openModal() {
+            document.getElementById("myModal").style.display = "block";
+        }
+
+        function handleCloseModal() {
+            document.getElementById("myModal").style.display = "none";
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById("myModal");
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        };
+
+
+        function displayTasksForDay(day) {
+            const dataItems = document.querySelectorAll('.data-item');
+
+            dataItems.forEach(item => {
+                const itemDay = parseInt(item.getAttribute('data-day'));
+                item.style.display = (itemDay === day) ? 'block' : 'none';
+            });
+        }
+
+
+        // Initial display of tasks based on the selected date
+        dateEle.dispatchEvent(new Event('change'));
+</script>
+
+<style>
+        
+    input,
+    button {
+        border-radius: 5px;
+    }
+
+    #des {
+        height: 30px;
+        width: 400px;
+        margin-top: 10px;
+        margin-left: 15px;
+    }
+
+    #btn1 {
+        width: 75px;
+        height: 30px;
+        margin-left: 80px;
+    }
+
+    .week {
+        width: 600px;
+        height: 30px;
+        margin-top: 10px;
+        box-sizing: border-box;
+        justify-content: center;
+    }
+    body {
+        display: flex;
+        justify-content: center;
+    }
+
+    .container {
+        width: 600px;
+        height: 100px;
+        border: 1px solid black;
+        border-radius: 10px;
+    }
+
+    #myDate {
+        margin-top: 10px;
+        margin-left: 260px;
+    }
+
+    #title {
+        width: 200px;
+        height: 20px;
+        margin-top: 10px;
+        margin-left: 15px;
+        margin-bottom: 0px;
+    }
+
+    .data-item {
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 10px;
+        background-color: #fff;
+        cursor: grab;
+    }
+
+    textarea {
+        width: 600px;
+        height: 60px;
+    }
+
+    /* Modal styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgb(0, 0, 0);
+        background-color: rgba(0, 0, 0, 0.4);
+        padding-top: 60px;
+    }
+
+    .modal-content {
+        background-color: #fefefe;
+        margin: 5% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+    }
+    
+
+    .btns {
+        width: 600px;
+        height: 100px;
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+    }
+
+    .btn {
+        height: 70px;
+        width: 70px;
+        background-color: #fff;
+        cursor: grab;
+    }
+
+    .container2 {
+        width: 600px;
+        margin-top: 80px;
+        box-sizing: border-box;
+    }
+
+    .text1 {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    /* Drag over and drop styles */
+    .drag-over {
+        border: 2px dashed #000;
+    }
+
+    #editTitle{
+        width: 200px;
+        height: 20px;
+        margin-top: 10px;
+        margin-left: 15px;
+        margin-bottom: 0px;
+    }
+
+    #editDes{
+        height: 30px;
+        width: 400px;
+        margin-top: 20px;
+        margin-left: 15px;
+        margin-right: 20px;
+    }
+
+    #editDate{
+        margin-top: 10px;
+        margin-left: 10px;
+    }
+    #button{
+        margin-left: 20px;
+    }
+
+    /* .delete-button{
+        /* margin-left: 350px;
+        margin-bottom: 10px;
+        margin-top: 20px; */
+    /* } */ 
+</style>
+</body>
+</html>
